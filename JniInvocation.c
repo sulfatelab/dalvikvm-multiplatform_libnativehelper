@@ -34,6 +34,12 @@
 #include "DlHelp.h"
 
 // Name the default library providing the JNI Invocation API.
+#if defined(_WIN32)
+// PE target from this repo's CMake: shared library target "art" -> art.dll
+static const char* kDefaultJniInvocationLibrary = "art.dll";
+static const char* kDebugJniInvocationLibrary = "artd.dll";
+static const char* kDebugJniInvocationLibraryPath = "artd.dll";
+#else
 static const char* kDefaultJniInvocationLibrary = "libart.so";
 static const char* kDebugJniInvocationLibrary = "libartd.so";
 #if defined(__LP64__)
@@ -42,6 +48,7 @@ static const char* kDebugJniInvocationLibrary = "libartd.so";
 #define LIB_DIR "lib"
 #endif
 static const char* kDebugJniInvocationLibraryPath = "/apex/com.android.art/" LIB_DIR "/libartd.so";
+#endif
 
 struct JniInvocationImpl {
   // Name of library providing JNI_ method implementations.

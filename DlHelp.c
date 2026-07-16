@@ -18,8 +18,13 @@
 
 #include <stdbool.h>
 
-#ifdef WIN32_LEAN_AND_MEAN
+#if defined(_WIN32)
 #include <stdio.h>
+#include <ctype.h>
+#include <string.h>
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
 #include <windows.h>
 #else
 #include <dlfcn.h>
@@ -27,7 +32,7 @@
 
 DlLibrary DlOpenLibrary(const char* filename) {
 #ifdef _WIN32
-  return LoadLibrary(filename);
+  return (DlLibrary)LoadLibraryA(filename);
 #else
   // Load with RTLD_NODELETE in order to ensure that libart.so is not unmapped when it is closed.
   // This is due to the fact that it is possible that some threads might have yet to finish
@@ -39,7 +44,7 @@ DlLibrary DlOpenLibrary(const char* filename) {
 
 bool DlCloseLibrary(DlLibrary library) {
 #ifdef _WIN32
-  return (FreeLibrary(library) == TRUE);
+  return (FreeLibrary((HMODULE)library) == TRUE);
 #else
   return (dlclose(library) == 0);
 #endif
@@ -47,7 +52,7 @@ bool DlCloseLibrary(DlLibrary library) {
 
 DlSymbol DlGetSymbol(DlLibrary handle, const char* symbol) {
 #ifdef _WIN32
-  return (DlSymbol) GetProcAddress(handle, symbol);
+  return (DlSymbol) GetProcAddress((HMODULE)handle, symbol);
 #else
   return dlsym(handle, symbol);
 #endif
