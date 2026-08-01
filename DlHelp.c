@@ -26,13 +26,22 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 #include <windows.h>
+#include <mdvm_windows_utf8.h>
 #else
 #include <dlfcn.h>
 #endif
 
 DlLibrary DlOpenLibrary(const char* filename) {
 #ifdef _WIN32
-  return (DlLibrary)LoadLibraryA(filename);
+  wchar_t* wide_filename = mdvm_utf8_to_utf16_alloc(filename);
+  if (wide_filename == NULL) {
+    return NULL;
+  }
+  HMODULE library = LoadLibraryW(wide_filename);
+  DWORD error = library != NULL ? ERROR_SUCCESS : GetLastError();
+  free(wide_filename);
+  SetLastError(error);
+  return (DlLibrary)library;
 #else
   // Load with RTLD_NODELETE in order to ensure that libart.so is not unmapped when it is closed.
   // This is due to the fact that it is possible that some threads might have yet to finish
