@@ -20,8 +20,6 @@
 
 #if defined(_WIN32)
 #include <stdio.h>
-#include <ctype.h>
-#include <string.h>
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
@@ -70,23 +68,31 @@ DlSymbol DlGetSymbol(DlLibrary handle, const char* symbol) {
 const char* DlGetError() {
 #ifdef _WIN32
   static char buffer[256];
+  wchar_t wide_buffer[256];
 
   DWORD cause = GetLastError();
   DWORD flags = FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS;
-  DWORD length = FormatMessageA(flags, NULL, cause, 0, buffer, sizeof(buffer), NULL);
+  DWORD length = FormatMessageW(
+      flags, NULL, cause, 0, wide_buffer,
+      (DWORD)(sizeof(wide_buffer) / sizeof(wide_buffer[0])), NULL);
   if (length == 0) {
     snprintf(buffer, sizeof(buffer),
              "Error %lu while retrieving message for error %lu",
              GetLastError(), cause);
-    length = strlen(buffer);
+    return buffer;
   }
 
   // Trim trailing whitespace.
-  for (DWORD i = length - 1; i > 0; --i) {
-    if (!isspace(buffer[i])) {
-      break;
-    }
-    buffer[i] = '\0';
+  while (length > 0 && (wide_buffer[length - 1] == L'\r' ||
+                        wide_buffer[length - 1] == L'\n' ||
+                        wide_buffer[length - 1] == L' ' ||
+                        wide_buffer[length - 1] == L'\t')) {
+    wide_buffer[--length] = L'\0';
+  }
+  if (!mdvm_utf16_to_utf8_buffer(wide_buffer, buffer, sizeof(buffer))) {
+    snprintf(buffer, sizeof(buffer),
+             "Error %lu while converting message for error %lu",
+             GetLastError(), cause);
   }
 
   return buffer;
